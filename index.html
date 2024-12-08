@@ -5,157 +5,237 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rutehåndtering</title>
     <style>
-        body { font-family: Arial, sans-serif; }
-        .route { margin-bottom: 20px; }
-        button { padding: 10px 15px; margin-top: 10px; border: none; cursor: pointer; }
-        button:hover { background-color: #f44336; } /* Hover-effekt på rød */
-        .green { background-color: #4CAF50; color: white; }
-        .red { background-color: #f44336; color: white; }
-        input, select { padding: 10px; margin: 10px 0; width: 100%; }
-        .hidden { display: none; }
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .green {
+            background-color: #4CAF50;
+        }
+
+        .red {
+            background-color: #D32F2F;
+        }
+
+        .blue {
+            background-color: #007BFF;
+        }
+
+        select, input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .route-item {
+            background-color: white;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .route-item a {
+            color: #4CAF50;
+            text-decoration: none;
+        }
+
+        .route-item a:hover {
+            text-decoration: underline;
+        }
+
+        .status {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        .completed {
+            color: #888;
+        }
     </style>
 </head>
 <body>
-    <h1>Rutehåndtering</h1>
 
-    <!-- Login -->
+<header>
+    Rutehåndtering
+</header>
+
+<div class="container">
     <div id="login">
         <h2>Login</h2>
         <input type="text" id="username" placeholder="Brugernavn">
         <input type="password" id="password" placeholder="Adgangskode">
-        <button onclick="login()">Log ind</button>
+        <button class="green" onclick="login()">Log ind</button>
     </div>
 
-    <!-- Oprettelse af nye ruter (Kun for chef) -->
-    <div id="createRoute" class="hidden">
-        <h2>Opret Ny Rute</h2>
-        <input type="text" id="routeName" placeholder="Rutenavn">
-        <input type="text" id="routeStart" placeholder="Start destination">
-        <input type="text" id="routeEnd" placeholder="Slut destination">
-        <input type="url" id="routeUrl" placeholder="Google Maps URL">
-        <button onclick="createRoute()">Opret rute</button>
-    </div>
-
-    <!-- Rutevalg (Kun for medarbejder) -->
     <div id="routeSelection" class="hidden">
         <h2>Vælg rute</h2>
         <select id="routeList">
             <!-- Fyldes dynamisk -->
         </select>
-        <button onclick="startRoute()">Start rute</button>
+        <button class="green" onclick="startRoute()">Start rute</button>
     </div>
 
-    <!-- Kør ruten -->
     <div id="routeExecution" class="hidden">
         <h2>Aktiv rute</h2>
-        <div id="ruteStatus"></div>
+        <div id="activeRouteDetails">
+            <!-- Dynamisk indhold for rute detaljerne -->
+        </div>
+        <button class="green" onclick="openGoogleMaps()">Rutevejledning</button>
         <button class="red" onclick="markComplete()">Afslut rute</button>
         <button class="red" onclick="skipStop()">Spring over dette sted</button>
-        <button class="green" onclick="openGoogleMaps()">Rutevejledning</button>
-        <button class="green" onclick="showWorkCard()">Arbejdskort</button>
+        <button class="blue" onclick="markAsDone()">Udført</button>
+        <button class="blue" onclick="showWorkCard()">Arbejdskort</button>
+
         <div id="workCard" class="hidden">
             <h3>Arbejdsinstruktioner</h3>
             <p id="instructions">Ingen instruktioner valgt endnu.</p>
         </div>
     </div>
 
-    <script>
-        let routes = [];
-        let currentRoute = null;
-        let currentStop = 1;
-        const totalStops = 4; // Skift til det faktiske antal ruter, du har.
+    <div id="routeOverview" class="hidden">
+        <h2>Aktive Ruter</h2>
+        <div class="route-item">
+            <p><strong>Rute 1</strong></p>
+            <a href="#">Få rutevejledning</a>
+        </div>
+        <div class="route-item">
+            <p><strong>Rute 2</strong></p>
+            <a href="#">Få rutevejledning</a>
+        </div>
+    </div>
+</div>
 
-        function login() {
-            const username = document.getElementById("username").value;
-            const password = document.getElementById("password").value;
-            
-            if (username === "chef" && password === "1234") {
-                // Log ind som chef og få adgang til ruteoprettelse
-                document.getElementById("login").classList.add("hidden");
-                document.getElementById("createRoute").classList.remove("hidden");
-            } else if (username === "medarbejder" && password === "1234") {
-                // Log ind som medarbejder og få adgang til rutevalg
-                document.getElementById("login").classList.add("hidden");
-                document.getElementById("routeSelection").classList.remove("hidden");
-                updateRouteList(); // Opdater rute-listen for medarbejderen
-            } else {
-                alert("Forkert brugernavn eller adgangskode!");
-            }
-        }
+<script>
+    let routes = {
+        snerydning: [
+            { name: "Rute 1", stops: [
+                { address: "Stærmosegårdsvej 8-10, 5230 Odense", note: "Special fliser skal saltes med miljøtø." },
+                { address: "Billedskærervej 17 og 17b, 5230 Odense", note: "" },
+                { address: "Billedskærervej 15, 5230 Odense", note: "" },
+                { address: "Klokkestøbervej 3, 5230 Odense", note: "" },
+                { address: "Klokkestøbervej 12, 5230 Odense", note: "Bemærk rampen bagved med håndarbejde." },
+                { address: "Klokkestøbervej 25, 5230 Odense", note: "" },
+                { address: "Stenhuggervej 21, 5230 Odense", note: "" },
+                { address: "Stenhuggervej 17, 5230 Odense", note: "Ikke hele ejendommen. Se kort." },
+                { address: "Niels Bohrs Alle 21, 5230 Odense", note: "Vigtig: Lægehus her." },
+                { address: "Petersmindevej 2, 5000 Odense", note: "" }
+            ]}
+        ]
+    };
 
-        function createRoute() {
-            const name = document.getElementById("routeName").value;
-            const start = document.getElementById("routeStart").value;
-            const end = document.getElementById("routeEnd").value;
-            const url = document.getElementById("routeUrl").value;
+    let currentRoute = null;
+    let currentStopIndex = 0;
 
-            if (name && start && end && url) {
-                // Tilføj ny rute til ruter
-                routes.push({ name, start, end, url });
-                alert("Rute oprettet!");
-
-                // Ryd formularen
-                document.getElementById("routeName").value = "";
-                document.getElementById("routeStart").value = "";
-                document.getElementById("routeEnd").value = "";
-                document.getElementById("routeUrl").value = "";
-
-                // Opdater rutevalg
-                updateRouteList();
-            } else {
-                alert("Udfyld alle felter.");
-            }
-        }
-
-        function updateRouteList() {
-            const routeList = document.getElementById("routeList");
-            routeList.innerHTML = ""; // Ryd eksisterende ruter
-            routes.forEach((route, index) => {
-                const option = document.createElement("option");
-                option.value = index;
-                option.textContent = route.name;
-                routeList.appendChild(option);
-            });
-        }
-
-        function startRoute() {
-            const selectedRouteIndex = document.getElementById("routeList").selectedIndex;
-            currentRoute = routes[selectedRouteIndex];
-            document.getElementById("routeSelection").classList.add("hidden");
-            document.getElementById("routeExecution").classList.remove("hidden");
-            updateRouteStatus();
-        }
-
-        function updateRouteStatus() {
-            document.getElementById("ruteStatus").textContent = `Stop ${currentStop} af ${totalStops}`;
-        }
-
-        function openGoogleMaps() {
-            if (currentRoute) {
-                window.open(currentRoute.url, "_blank");
-            }
-        }
-
-        function markComplete() {
-            alert("Ruten er afsluttet!");
-            document.getElementById("routeExecution").classList.add("hidden");
+    function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+        if (username === "medarbejder" && password === "1234") {
+            document.getElementById("login").classList.add("hidden");
             document.getElementById("routeSelection").classList.remove("hidden");
+            loadRoutes();
+        } else {
+            alert("Forkert brugernavn eller adgangskode!");
         }
+    }
 
-        function skipStop() {
-            if (currentStop < totalStops) {
-                currentStop++;
-                updateRouteStatus();
-            } else {
-                alert("Du har nået slutningen af ruten.");
-            }
-        }
+    function loadRoutes() {
+        const routeList = document.getElementById("routeList");
+        routeList.innerHTML = ""; 
+        routes.snerydning.forEach((route) => {
+            const option = document.createElement("option");
+            option.textContent = route.name;
+            routeList.appendChild(option);
+        });
+    }
 
-        function showWorkCard() {
-            const instructions = currentRoute ? `Kør fra ${currentRoute.start} til ${currentRoute.end}` : "Ingen instruktioner.";
-            document.getElementById("instructions").textContent = instructions;
-            document.getElementById("workCard").classList.remove("hidden");
+    function startRoute() {
+        const selectedRoute = document.getElementById("routeList").value;
+        currentRoute = routes.snerydning.find(route => route.name === selectedRoute);
+        document.getElementById("routeSelection").classList.add("hidden");
+        document.getElementById("routeExecution").classList.remove("hidden");
+        displayRouteDetails();
+    }
+
+    function displayRouteDetails() {
+        const routeDetails = currentRoute.stops[currentStopIndex];
+        const activeRouteDetails = document.getElementById("activeRouteDetails");
+        activeRouteDetails.innerHTML = `
+            <p><strong>Sted:</strong> ${routeDetails.address}</p>
+            <p><strong>Bemærkning:</strong> ${routeDetails.note || "Ingen specifik bemærkning."}</p>
+        `;
+    }
+
+    function openGoogleMaps() {
+        window.open("https://www.google.com/maps", "_blank");
+    }
+
+    function markComplete() {
+        alert("Ruten er markeret som afsluttet!");
+        document.getElementById("routeExecution").classList.add("hidden");
+        document.getElementById("routeOverview").classList.remove("hidden");
+    }
+
+    function skipStop() {
+        alert("Du har valgt at springe over dette stop.");
+        currentStopIndex++;
+        if (currentStopIndex < currentRoute.stops.length) {
+            displayRouteDetails();
         }
-    </script>
+    }
+
+    function markAsDone() {
+        alert("Arbejdet på dette sted er udført!");
+        currentStopIndex++;
+        if (currentStopIndex < currentRoute.stops.length) {
+            displayRouteDetails();
+        }
+    }
+
+    function showWorkCard() {
+        const routeDetails = currentRoute.stops[currentStopIndex];
+        document.getElementById("instructions").textContent = routeDetails.note || "Ingen instruktioner.";
+        document.getElementById("workCard").classList.remove("hidden");
+    }
+
+</script>
+
 </body>
 </html>
