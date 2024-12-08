@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rutehåndtering</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 24px;
+        }
+
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        button {
+            padding: 12px 20px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            opacity: 0.8;
+        }
+
+        .green {
+            background-color: #4CAF50;
+        }
+
+        .red {
+            background-color: #D32F2F;
+        }
+
+        .blue {
+            background-color: #007BFF;
+        }
+
+        select, input {
+            padding: 10px;
+            margin: 10px 0;
+            width: 100%;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .route-item {
+            background-color: white;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .status {
+            font-size: 18px;
+            margin-top: 20px;
+        }
+
+        .completed {
+            color: #888;
+        }
+
+        .work-images img {
+            width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .route-stop {
+            margin-bottom: 20px;
+        }
+
+        .route-stop h4 {
+            margin: 5px 0;
+            font-size: 20px;
+        }
+
+        .route-stop p {
+            margin: 5px 0;
+            font-size: 16px;
+        }
+
+        .stop-number {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    Rutehåndtering
+</header>
+
+<div class="container">
+    <div id="login">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Brugernavn">
+        <input type="password" id="password" placeholder="Adgangskode">
+        <button class="green" onclick="login()">Log ind</button>
+        <p id="loginError" style="color:red; display:none;">Forkert brugernavn eller adgangskode!</p>
+    </div>
+
+    <div id="routeSelection" class="hidden">
+        <h2>Vælg rute</h2>
+        <select id="routeList">
+            <!-- Fyldes dynamisk -->
+        </select>
+        <button class="green" onclick="startRoute()">Start rute</button>
+    </div>
+
+    <div id="routeExecution" class="hidden">
+        <h2>Aktiv rute</h2>
+        <div id="activeRouteDetails">
+            <!-- Dynamisk indhold for rute detaljerne -->
+        </div>
+        <button class="green" onclick="openGoogleMaps()">Rutevejledning</button>
+        <button class="red" onclick="markComplete()">Afslut rute</button>
+        <button class="red" onclick="skipRoute()">Spring</button>
+        <button class="blue" onclick="showWorkCard()">Arbejdskort</button>
+
+        <div id="workCard" class="hidden">
+            <h3>Arbejdsinstruktioner</h3>
+            <p id="instructions">Ingen instruktioner valgt endnu.</p>
+
+            <!-- Billeder til hvert stop på ruten -->
+            <div id="images" class="work-images">
+                <!-- Dynamisk indhold for billeder -->
+            </div>
+            <p id="currentStop"></p> <!-- Vist stop nummer og navn -->
+        </div>
+    </div>
+</div>
+
+<script>
+    // Opret brugerdata (kan udvides)
+    const users = {
+        "medarbejder": "1234",
+        "admin": "admin123"
+    };
+
+    let routes = {
+        snerydning: [
+            { number: 1, name: "Stærmosegårdsvej 8-10", address: "Stærmosegårdsvej 8-10, 5230 Odense", note: "Special fliser skal saltes med miljøtø.", image: "https://www.dropbox.com/scl/fi/bhlnw1pezdjb2ez1ecl88/St-rmoseg-rdsvej-8-10-Odense.jpg?rlkey=rlpe67l7qmikwx5b1ltnvt790&st=ooglex0j&raw=1" },
+            { number: 2, name: "Billedskærervej 17", address: "Billedskærervej 17 og 17b, 5230 Odense", note: "Arealet skal fejes af.", image: "https://www.dropbox.com/scl/fi/1lus7sz0ocsef9wnox1p7/Billedsk-rervej-17-Odense.jpg?rlkey=rxtcw77k0rw0bn14h0ftwh119&st=m2ntt4hd&raw=1" },
+            { number: 3, name: "Billedskærervej 17B", address: "Billedskærervej 17B, 5230 Odense", note: "Arealet skal fejes af.", image: "https://www.dropbox.com/scl/fi/1k6r7ss1rzxe50zxk8e6h/Billedsk-revej-17B.jpg?rlkey=vijstjcpy63ap50fom8bvgevn&st=scss4go7&raw=1" },
+            { number: 4, name: "Billedskærervej 15", address: "Billedskærervej 15, 5230 Odense", note: "Arealet skal også fejes af.", image: "https://www.dropbox.com/scl/fi/x9mps83mwdt7r2j3owyjm/Billedsk-rervej-15-Odense.jpg?rlkey=49ch18ojxoxz84rf4ch1rtkm9&st=muw32ryv&raw=1" },
+            { number: 5, name: "Klokkestøbervej 3", address: "Klokkestøbervej 3, 5220 Odense", note: "Miljøtø skal anvendes.", image: "https://www.dropbox.com/scl/fi/rvbrbpsntbbucbw5vcytw/Klokkest-bervej-3-Odense.jpg?rlkey=1uazyd998s33h6czec92gtjk9&st=uo57pccb&raw=1" }
+        ]
+    };
+
+    let currentRoute = null;
+    let currentStopIndex = 0;
+
+    // Login funktion
+    function login() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        // Tjekker om login er korrekt
+        if (users[username] === password) {
+            document.getElementById('login').classList.add('hidden');
+            document.getElementById('routeSelection').classList.remove('hidden');
+            populateRouteList(); // Indlæser rutevalget
+        } else {
+            document.getElementById('loginError').style.display = 'block'; // Fejlmeddelelse ved forkert login
+        }
+    }
+
+    // Fylder rute-listen
+    function populateRouteList() {
+        const routeList = document.getElementById('routeList');
+        routeList.innerHTML = ''; // Tømmer den nuværende liste
+
+        for (const route in routes) {
+            const option = document.createElement('option');
+            option.value = route;
+            option.textContent = route.charAt(0).toUpperCase() + route.slice(1);
+            routeList.appendChild(option);
+        }
+    }
+
+    // Starter den valgte rute
+    function startRoute() {
+        const route = document.getElementById('routeList').value;
+        currentRoute = routes[route];
+        document.getElementById('routeSelection').classList.add('hidden');
+        document.getElementById('routeExecution').classList.remove('hidden');
+        loadRouteDetails(); // Indlæser rutedetaljer
+    }
+
+    // Indlæser det næste stop
+    function loadRouteDetails() {
+        const activeRouteDetails = document.getElementById('activeRouteDetails');
+        activeRouteDetails.innerHTML = '';
+
+        const stop = currentRoute[currentStopIndex];
+        const routeStopDiv = document.createElement('div');
+        routeStopDiv.classList.add('route-stop');
+        routeStopDiv.innerHTML = `
+            <h4>Stop ${stop.number}: ${stop.name}</h4>
+            <p>${stop.address}</p>
+            <p><strong>Bemærkning:</strong> ${stop.note}</p>
+        `;
+        activeRouteDetails.appendChild(routeStopDiv);
+    }
+
+    // Åbner Google Maps
+    function openGoogleMaps() {
+        const stop = currentRoute[currentStopIndex];
+        const mapUrl = `https://www.google.com/maps/search/${stop.address}`;
+        window.open(mapUrl, '_blank');
+    }
+
+    // Marker stop som afsluttet
+    function markComplete() {
+        currentStopIndex++;
+        if (currentStopIndex < currentRoute.length) {
+            loadRouteDetails();
+        } else {
+            alert('Rute afsluttet!');
+            document.getElementById('routeExecution').classList.add('hidden');
+        }
+    }
+
+    // Spring stop
+    function skipRoute() {
+        currentStopIndex++;
+        if (currentStopIndex < currentRoute.length) {
+            loadRouteDetails();
+        } else {
+            alert('Rute afsluttet!');
+            document.getElementById('routeExecution').classList.add('hidden');
+        }
+    }
+
+    // Vis arbejdsbillet
+    function showWorkCard() {
+        const stop = currentRoute[currentStopIndex];
+        const imagesContainer = document.getElementById('images');
+        imagesContainer.innerHTML = '';
+
+        const imageElement = document.createElement('img');
+        imageElement.src = stop.image; // Henter billede fra stop
+        imagesContainer.appendChild(imageElement);
+
+        document.getElementById('workCard').classList.remove('hidden');
+        document.getElementById('currentStop').textContent = `Du er på stop ${stop.number}: ${stop.name}`;
+    }
+</script>
+
+</body>
+</html>
